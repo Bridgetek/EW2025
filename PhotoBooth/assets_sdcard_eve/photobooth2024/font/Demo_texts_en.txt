@@ -1,0 +1,19 @@
+
+static char *key_shift[] = {
+    "QWERTYUIOP{}|", // 13
+    "ASDFGHJKL:\"",  // 11
+    "ZXCVBNM<>?",    // 10
+};
+
+static char *key_normal[] = {
+    "qwertyuiop[]\\",
+    "asdfghjkl;'",
+    "zxcvbnm,./",
+};
+static char *key_special[] = {
+    "~`!@#$%^&*()_",
+    "-=[]\\;',./",
+    "<>?:{}|\"  ",
+};
+
+static const uint8_t *toprow = "~1234567890-+";
