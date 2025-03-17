@@ -13,7 +13,12 @@ It includes :
 ![image](https://github.com/user-attachments/assets/4ca6ee21-61be-4ba9-b144-b9ad380fa364)
 
 
-### IDM2040-21R Demo
+### Bedside Patient Monitor Demo (BT817 based) 
+
+![image](https://github.com/user-attachments/assets/cc2d3970-10a1-4b12-a605-81c226d29c79)
+
+
+### IDM2040-21R Demo (RPi2040 + FT800Q) 
 
 
 ![402766038-391b89d9-04fe-4f70-b373-edf168cdbcd8](https://github.com/user-attachments/assets/11f3497f-c9ec-4107-a801-97733c963899)
