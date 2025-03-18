@@ -1,10 +1,10 @@
-1. INTRODUCTION
+# INTRODUCTION
     This project contains example code for the Bedside Patient Monitor demo application.
-
 
 ![image](https://github.com/user-attachments/assets/5467df6e-da1c-4e97-aef2-3834d56d19f0)
 
-2. FOLDER Structure
+## FOLDER Structure   
+
     ├───Project                  
     │   ├───MM2040EV_BT81x_C | MM2040EV platform with Rp2040 and BT817
     │   ├───Msvc_BT81x       | Microsoft Visual Studio C++ 2022 IDE solution file for FT4222, MPSSE and Emulator platform
@@ -13,14 +13,14 @@
     ├───Test                 | Eve specific Assets: bitmap data, flash image, font data etc. 
     ├───Common               | Eve_Hal framework and helper functions
 
-2. SUPPORTED PLATFORM
+## SUPPORTED PLATFORM
     * Microsoft Visual C++ platform with FT4222, MPSSE and Emulator
     * MM2040EV
     
     EVE chip: BT817
     LCD size: WXGA(1280x800)
 
-3. SETUP AND RUN
+## SETUP AND RUN
     3.1 CONNECT HARDWARE
         3.1.1 Microsoft Visual C++ platform with FT4222 and MPSSE
             - Connect PC with EVE platform via FT4222 or MPSSE
