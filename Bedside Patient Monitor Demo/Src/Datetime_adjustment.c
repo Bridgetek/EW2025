@@ -5,7 +5,6 @@
 #include "common.h"
 #include "Bedside_Patient_Monitor_Demo.h"
 
-#define APP_PRINTF //printf
 extern EVE_HalContext* s_pHalContext;
 // Day (1-31)
 static uint32_t dd_list[] = {

@@ -18,26 +18,24 @@
 #include "Helpers.h"
 #include "Gesture.h"
 
-EVE_HalContext s_halContext;
-EVE_HalContext* s_pHalContext;
-void Bedside_Patient_Monitor_Demo();
-#define DELAY EVE_sleep(2000);
-#define SCANOUT_FORMAT RGB8
-
-// flash.map content
-static const uint32_t arial_25_ASTC_glyph           []={ 649344   , 52416 };
-static const uint32_t arial_25_ASTC_xfont           []={ 701760   , 176   };
-static const uint32_t arial_25_ASTC_xfont_padding   []={ 701936   , 16    };
-static const uint32_t arial_38_ASTC_glyph           []={ 1880704  , 157248};
-static const uint32_t arial_38_ASTC_xfont           []={ 2037952  , 176   };
-static const uint32_t arial_38_ASTC_xfont_padding   []={ 2038128  , 16    };
-static const uint32_t ARIALNB_88_ASTC_glyph         []={ 10943360 , 66560 };
-static const uint32_t ARIALNB_88_ASTC_xfont         []={ 11009920 , 176   };
-static const uint32_t ARIALNB_88_ASTC_xfont_padding []={ 11010096 , 16    };
-
+// Definitions -------------------------------------------
 #define F_ADDR 0
 #define F_SIZE 1
+#define ENABLE_FONT_CACHE 1
+#define ENABLE_SHOW_FPS 0
+#define ENABLE_FONT_CUSTOM 0
 
+#define MONTH_MODE_DIGIT 0
+#define MONTH_MODE_STR3 1
+#define MONTH_MODE_STRS 2
+
+#define TIME_MODE_HH_MM 0
+#define TIME_MODE_HH_MM_SS 1
+#define TIME_MODE_HH_MM_SS_MS 2
+
+#define COLOR_CODE_WINDOW_BAR COLOR_RGB(0, 120, 215)
+
+// Structs -----------------------------------------------
 typedef struct {
 	uint32_t flash_addr;
 	uint32_t flash_size;
@@ -50,61 +48,43 @@ typedef struct {
 	uint32_t cache_size;
 }app_font;
 
+// Function declarations ---------------------------------
+uint32_t graph_l1_rotate_init(app_box* box_heartbeat, app_box* box_pleth, app_box* box_co2);
+void graph_l1_rotate_draw();
+
+// Variables ---------------------------------------------
+EVE_HalContext s_halContext;
+EVE_HalContext* s_pHalContext;
+uint8_t time_mode = TIME_MODE_HH_MM;
+uint8_t month_mode = MONTH_MODE_DIGIT;
+
+// flash.map content
+static const uint32_t arial_25_ASTC_xfont[] = { 701760   , 176 };
+static const uint32_t ARIALNB_88_ASTC_xfont[] = { 11009920 , 176 };
+
 app_font font0 = { .xfont = &ARIALNB_88_ASTC_xfont };
 app_font font2 = { .xfont = &arial_25_ASTC_xfont };
 app_font* fonts[] = { &font0, &font2 };
-uint32_t zoom_in[] = { 0, 11010112 , 784 + 48}; // structure: address on ramg (set later), address on flash, size
-uint32_t zoom_out[] = { 0, 11010944 , 784 + 48};
+uint32_t zoom_in[] = { 0, 11010112 , 832 };
+uint32_t zoom_out[] = { 0, 11010944 , 832 };
 
-int32_t main(int32_t argc, char* argv[])
-{
-	s_pHalContext = &s_halContext;
-	Gpu_Init(s_pHalContext);
-#if defined(BT82X_ENABLE)
-	LVDS_Config(s_pHalContext, SCANOUT_FORMAT, TESTCASE_PICTURE);
-#endif
+int32_t g_graph_zoom_lv = 3;
 
-	EVE_Util_clearScreen(s_pHalContext);
+app_box box_menu_top;
+app_box box_ecg;
+app_box box_pth;
+app_box box_co2;
+app_box box_menu_bottom;
 
-	// read and store calibration setting
-#if !defined(BT8XXEMU_PLATFORM) && !defined(BT82X_ENABLE) && GET_CALIBRATION == 1
-	Calibration_New(s_pHalContext);
-#endif 
+app_box box_graph_ecg;
+app_box box_graph_pth;
+app_box box_graph_co2;
 
-#if !defined(BT8XXEMU_PLATFORM)
-	uint32_t sent = Flash_Init(s_pHalContext, TEST_DIR "ew2025_bedside_patient_monitor_demo_bt81x.bin", "ew2025_bedside_patient_monitor_demo_bt81x.bin", 0);
-#endif
-	FlashHelper_SwitchFullMode(s_pHalContext);
-
-	while (TRUE)
-	{
-		Bedside_Patient_Monitor_Demo();
-
-		EVE_Util_clearScreen(s_pHalContext);
-
-		EVE_Hal_close(s_pHalContext);
-		EVE_Hal_release();
-
-		/* Init HW Hal for next loop*/
-		Gpu_Init(s_pHalContext);
-#if !defined(BT8XXEMU_PLATFORM) && !defined(BT82X_ENABLE) && GET_CALIBRATION == 1
-		Calibration_Restore(s_pHalContext);
-#endif
-	}
-
-	return 0;
-}
-
-/// The demo area //////////////////////////////////////////////////////////////////////////////////////
-#define MONTH_MODE_DIGIT 0
-#define MONTH_MODE_STR3 1
-#define MONTH_MODE_STRS 2
-uint8_t month_mode = MONTH_MODE_DIGIT;
-
-#define TIME_MODE_HH_MM 0
-#define TIME_MODE_HH_MM_SS 1
-#define TIME_MODE_HH_MM_SS_MS 2
-uint8_t time_mode = TIME_MODE_HH_MM;
+uint8_t* const btnStartTxtActive = "START";
+uint8_t* const btnStartTxtInActive = "STOP";
+uint8_t* btnStartTxt = 0;
+uint8_t btnStartState = BTN_START_INACTIVE;
+uint32_t graph_size_ramg = 0;
 
 void load_app_assets(uint32_t ramg_offset) {
 
@@ -119,10 +99,10 @@ void load_app_assets(uint32_t ramg_offset) {
 		f->flash_addr = f->xfont[F_ADDR];
 		f->flash_size = f->xfont[F_SIZE];
 		f->handler = i + font_handler_start;
-		f->xfont_addr = ALIGN_UP_TO_N( ramg_offset, 32); // SetFont2 32 bit align
+		f->xfont_addr = ALIGN_UP_TO_N(ramg_offset, 32); // SetFont2 32 bit align
 		f->xfont_size = f->flash_size;
 		ramg_offset = f->xfont_addr + f->xfont_size;
-	
+
 		// prepare font handler
 		Display_Start(s_pHalContext);
 		EVE_CoCmd_flashRead(s_pHalContext, f->xfont_addr, f->flash_addr, f->flash_size);
@@ -136,7 +116,6 @@ void load_app_assets(uint32_t ramg_offset) {
 	EVE_CoCmd_flashRead(s_pHalContext, zoom_in[0], zoom_in[1], zoom_in[2]);
 	EVE_CoCmd_flashRead(s_pHalContext, zoom_out[0], zoom_out[1], zoom_out[2]);
 
-#define ENABLE_FONT_CACHE 1
 #if ENABLE_FONT_CACHE
 	// caching the font, only BT817/8, BT82x incompatible
 	ramg_offset += zoom_in[2] + zoom_out[2];
@@ -144,7 +123,7 @@ void load_app_assets(uint32_t ramg_offset) {
 	uint32_t cache_size_per_font = ramg_remain / num_font;
 	for (int32_t i = 0; i < num_font; i++) {
 		app_font* f = fonts[i];
-		
+
 		uint32_t cache_size = min(cache_size_per_font, RAM_G_SIZE - ramg_offset);
 		if (cache_size < 16 * 1024) {
 			printf("Warning: RAMG free < 16Kb\n");
@@ -154,7 +133,7 @@ void load_app_assets(uint32_t ramg_offset) {
 			printf("Warning: RAMG full\n");
 			break;
 		}
-		
+
 		f->cache_addr = ALIGN_UP_TO_N(ramg_offset, 64); // 64-byte aligned.
 		f->cache_size = ALIGN_UP_TO_N(cache_size, 4); // 4 byte aligned. Must be at least 16 Kbytes.
 
@@ -181,81 +160,16 @@ void draw_app_window(app_box app_window)
 	EVE_DRAW_AT(s_pHalContext->Width, s_pHalContext->Height);
 }
 
-#define ENABLE_SCREENSHOT_CAPTURE 0
-
-#define USE_BITMAP_L1                  0
-#define USE_BITMAP_L1_ROTATE           1
-#define USE_BITMAP_PALETTED_ROTATE     2
-#define USE_BITMAP_BARGRAPH            3
-#define USE_BITMAP_LINESTRIP           4
-
-#define USEBITMAP USE_BITMAP_L1_ROTATE
-
-#if  USEBITMAP == USE_BITMAP_L1
-#define GRAPH_INIT graph_l1_init
-#define GRAPH_DRAW graph_l1_draw
-
-#elif  USEBITMAP == USE_BITMAP_L1_ROTATE
-#define GRAPH_INIT graph_l1_rotate_init
-#define GRAPH_DRAW graph_l1_rotate_draw
-
-#elif  USEBITMAP == USE_BITMAP_PALETTED_ROTATE
-#define GRAPH_INIT graph_p8_rotate_init
-#define GRAPH_DRAW graph_p8_rotate_draw
-
-#elif  USEBITMAP == USE_BITMAP_BARGRAPH
-#define GRAPH_INIT graph_bargraph_init
-#define GRAPH_DRAW graph_bargraph_draw
-
-#elif  USEBITMAP == USE_BITMAP_LINESTRIP
-#define GRAPH_INIT graph_linestrip_init
-#define GRAPH_DRAW graph_linestrip_draw
-
-#endif
-
-uint32_t GRAPH_INIT(app_box* box_heartbeat, app_box* box_pleth, app_box* box_co2);
-void GRAPH_DRAW();
-
-int32_t g_graph_zoom_lv = 3;
-
-app_box box_menu_top;
-app_box box_ecg;
-app_box box_pth;
-app_box box_co2;
-app_box box_menu_bottom;
-
-app_box box_graph_ecg;
-app_box box_graph_pth;
-app_box box_graph_co2;
-
-char* const btnStartTxtActive = "START";
-char* const btnStartTxtInActive = "STOP";
-char* btnStartTxt = 0;
-uint8_t btnStartState = BTN_START_INACTIVE;
-uint32_t grid_bytes = 0;
-uint32_t graph_size_ramg = 0;
-uint8_t is_datetime_setting_active = 0;
-
 void process_event() {
-#if defined(BT82X_ENABLE)
-	return; // disable touch on bt820
-#endif
-
-#if  USEBITMAP == USE_BITMAP_BARGRAPH
-	return; // disable touch on bargraph
-#endif
-
 	Gesture_Touch_t* ges = utils_gestureRenew(s_pHalContext);
 	if (ges->tagReleased == TAG_ZOOM_DOWN) {
 		g_graph_zoom_lv--;
 		g_graph_zoom_lv = max(g_graph_zoom_lv, 1);
-		//GRAPH_INIT(&box_ecg, &box_graph_pleth, &box_graph_co2);
 	}
 
 	else if (ges->tagReleased == TAG_ZOOM_UP) {
 		g_graph_zoom_lv++;
 		g_graph_zoom_lv = min(g_graph_zoom_lv, GRAPH_ZOOM_LV_MAX);
-		//GRAPH_INIT(&box_ecg, &box_graph_pleth, &box_graph_co2);
 	}
 
 	else if (ges->tagReleased == TAG_START_STOP) {
@@ -277,10 +191,9 @@ void process_event() {
 	}
 
 	if (ges->distanceX > 300) { // 300 pixels
-		is_datetime_setting_active = 1;
 		dateime_adjustment(s_pHalContext);
 		//reset graph
-		graph_size_ramg = GRAPH_INIT(&box_graph_ecg, &box_graph_pth, &box_graph_co2);
+		graph_size_ramg = graph_l1_rotate_init(&box_graph_ecg, &box_graph_pth, &box_graph_co2);
 		load_app_assets(graph_size_ramg);
 	}
 }
@@ -333,11 +246,17 @@ void draw_grid_box(app_box box_graph) {
 	draw_grid_by_cocmd(x, y, w, h, cell_w, cell_h);
 }
 
-void Bedside_Patient_Monitor_Demo()
+int32_t main(int32_t argc, char* argv[])
 {
-#if  USEBITMAP == USE_BITMAP_BARGRAPH
-	g_graph_zoom_lv = 1; // disable touch on bargraph
-#endif
+	s_pHalContext = &s_halContext;
+	Gpu_Init(s_pHalContext);
+
+	EVE_Util_clearScreen(s_pHalContext);
+
+	// read and store calibration setting
+	Calibration_New(s_pHalContext);
+	Flash_Init(s_pHalContext, TEST_DIR "ew2025_bedside_patient_monitor_demo_bt81x.bin", "ew2025_bedside_patient_monitor_demo_bt81x.bin", 0);
+	FlashHelper_SwitchFullMode(s_pHalContext);
 
 	// register big font 32 33 34
 	Display_Start(s_pHalContext);
@@ -375,7 +294,7 @@ void Bedside_Patient_Monitor_Demo()
 	int32_t y = box_menu_top.y_end;
 	int32_t border = 2;
 
-	app_box box_right1 = INIT_APP_BOX(x, y + h * 0+1, w, h);
+	app_box box_right1 = INIT_APP_BOX(x, y + h * 0 + 1, w, h);
 	app_box box_right2 = INIT_APP_BOX(x, y + h * 1, w, h);
 	app_box box_right3 = INIT_APP_BOX(x, y + h * 2, w, h);
 	app_box box_right4 = INIT_APP_BOX(x, y + h * 3, w, h);
@@ -392,19 +311,15 @@ void Bedside_Patient_Monitor_Demo()
 
 	static int32_t screenshot_counter = 0;
 
-	graph_size_ramg = GRAPH_INIT(&box_graph_ecg, &box_graph_pth, &box_graph_co2);
+	graph_size_ramg = graph_l1_rotate_init(&box_graph_ecg, &box_graph_pth, &box_graph_co2);
 	load_app_assets(graph_size_ramg);
-	
+
 	while (1)
 	{
 		Display_Start(s_pHalContext);
 		EVE_Cmd_wr32(s_pHalContext, VERTEX_FORMAT(EVE_VERTEX_FORMAT));
 
 		process_event();
-
-#if defined(BT82X_ENABLE)
-		EVE_CoCmd_sync(s_pHalContext);
-#endif
 
 		draw_app_window(app_window);
 
@@ -417,9 +332,8 @@ void Bedside_Patient_Monitor_Demo()
 		EVE_Cmd_wr32(s_pHalContext, LINE_WIDTH(16)); // reset line_width, without this, graphics become transparent 50%
 		EVE_Cmd_wr32(s_pHalContext, COLOR_A(255));
 
-		GRAPH_DRAW();
+		graph_l1_rotate_draw();
 
-#define COLOR_CODE_WINDOW_BAR COLOR_RGB(0, 120, 215)
 		// Top menu box
 		EVE_Cmd_wr32(s_pHalContext, COLOR_CODE_WINDOW_BAR);
 		DRAW_BOX(box_menu_top);
@@ -470,8 +384,9 @@ void Bedside_Patient_Monitor_Demo()
 		// Stop button
 		if (btnStartState == BTN_START_INACTIVE) {
 			EVE_CoCmd_fgColor(s_pHalContext, 0x0078D4);
-		EVE_Cmd_wr32(s_pHalContext, COLOR_RGB(255, 255, 255));
-		}else {
+			EVE_Cmd_wr32(s_pHalContext, COLOR_RGB(255, 255, 255));
+		}
+		else {
 			EVE_CoCmd_fgColor(s_pHalContext, 0xC2C2C2);
 			EVE_Cmd_wr32(s_pHalContext, COLOR_RGB(53, 53, 53));
 		}
@@ -487,9 +402,8 @@ void Bedside_Patient_Monitor_Demo()
 		EVE_CoCmd_fgColor(s_pHalContext, 0xC2C2C2);
 		EVE_CoCmd_button(s_pHalContext, box_menu_top.x + btn_w * 1, box_menu_bottom.y + 7, btn_w, btn_h, 30, OPT_FLAT, "RECORD");
 		EVE_CoCmd_button(s_pHalContext, box_menu_top.x + btn_w * 3 + btn_margin * 2, box_menu_bottom.y + 7, btn_w, btn_h, 30, OPT_FLAT, "NIBP");
-		EVE_CoCmd_button(s_pHalContext, box_right4.x + (box_right4.w/2 - btn_w/2), box_menu_bottom.y + 7, btn_w, btn_h, 30, OPT_FLAT, "EXIT");
+		EVE_CoCmd_button(s_pHalContext, box_right4.x + (box_right4.w / 2 - btn_w / 2), box_menu_bottom.y + 7, btn_w, btn_h, 30, OPT_FLAT, "EXIT");
 
-#define ENABLE_SHOW_FPS 0
 #if ENABLE_SHOW_FPS
 		// Frame per second measurement
 		EVE_Cmd_wr32(s_pHalContext, COLOR_RGB(0, 0, 0));
@@ -499,7 +413,7 @@ void Bedside_Patient_Monitor_Demo()
 		x = box_menu_top.x;
 		y = box_menu_top.y_mid;
 		EVE_Cmd_wr32(s_pHalContext, COLOR_RGB(255, 255, 255));
-#define ENABLE_FONT_CUSTOM 0
+
 #if ENABLE_FONT_CUSTOM 
 		EVE_CoCmd_text(s_pHalContext, x + 5, y, font1.handler, OPT_CENTERY, "Bed");
 		EVE_CoCmd_text(s_pHalContext, x + 155, y, font1.handler, OPT_CENTERY, "No. 5");
@@ -511,19 +425,22 @@ void Bedside_Patient_Monitor_Demo()
 		EVE_Cmd_wr32(s_pHalContext, TAG(TAG_TIME_STR));
 		if (time_mode == TIME_MODE_HH_MM) {
 			EVE_CoCmd_text(s_pHalContext, box_menu_top.x_end - 10, y, 31, OPT_CENTERY | OPT_RIGHTX, hh_mm());
-		}else if (time_mode == TIME_MODE_HH_MM_SS) {
+		}
+		else if (time_mode == TIME_MODE_HH_MM_SS) {
 			EVE_CoCmd_text(s_pHalContext, box_menu_top.x_end - 10, y, 31, OPT_CENTERY | OPT_RIGHTX, hh_mm_ss());
-		}else if (time_mode == TIME_MODE_HH_MM_SS_MS) {
+		}
+		else if (time_mode == TIME_MODE_HH_MM_SS_MS) {
 			EVE_CoCmd_text(s_pHalContext, box_menu_top.x_end - 10, y, 31, OPT_CENTERY | OPT_RIGHTX, hh_mm_ss_ms());
 		}
 
 		EVE_Cmd_wr32(s_pHalContext, TAG(TAG_MONTH_STR));
 		if (month_mode == MONTH_MODE_DIGIT) {
 			EVE_CoCmd_text(s_pHalContext, box_menu_top.x_mid, y, 31, OPT_CENTER, dd_mm_yyyy());
-		}else if (month_mode == MONTH_MODE_STR3) {
+		}
+		else if (month_mode == MONTH_MODE_STR3) {
 			EVE_CoCmd_text(s_pHalContext, box_menu_top.x_mid, y, 31, OPT_CENTER, dd_mmm_yyyy());
 		}
-		else if(month_mode == MONTH_MODE_STRS) {
+		else if (month_mode == MONTH_MODE_STRS) {
 			EVE_CoCmd_text(s_pHalContext, box_menu_top.x_mid, y, 31, OPT_CENTER, dd_month_yyyy());
 		}
 #endif
@@ -535,14 +452,14 @@ void Bedside_Patient_Monitor_Demo()
 		y = box_menu_top.y_mid - btn_h / 2;
 		int zoom_icon_wh = 28;
 		int zoom_icon_padding = 5;
-		app_box zoombox= INIT_APP_BOX(x, y, btn_w, btn_h); // top right side
+		app_box zoombox = INIT_APP_BOX(x, y, btn_w, btn_h); // top right side
 		EVE_Cmd_wr32(s_pHalContext, TAG(0));
 		EVE_CoCmd_button(s_pHalContext, zoombox.x, zoombox.y, zoombox.w, zoombox.h, 28, 0, "");
 		EVE_Cmd_wr32(s_pHalContext, BITMAP_HANDLE(0));
 		EVE_Cmd_wr32(s_pHalContext, COLOR_RGB(0, 0, 0));
 		EVE_CoCmd_setBitmap(s_pHalContext, zoom_out[0], COMPRESSED_RGBA_ASTC_4x4_KHR, zoom_icon_wh, zoom_icon_wh);
 		EVE_Cmd_wr32(s_pHalContext, BEGIN(BITMAPS));
-		EVE_DRAW_AT(zoombox.x + zoom_icon_padding, zoombox.y_mid - zoom_icon_wh/2); // 14 is zoom icon height / 2
+		EVE_DRAW_AT(zoombox.x + zoom_icon_padding, zoombox.y_mid - zoom_icon_wh / 2); // 14 is zoom icon height / 2
 		EVE_CoCmd_setBitmap(s_pHalContext, zoom_in[0], COMPRESSED_RGBA_ASTC_4x4_KHR, zoom_icon_wh, zoom_icon_wh);
 		EVE_Cmd_wr32(s_pHalContext, BEGIN(BITMAPS));
 		EVE_DRAW_AT(zoombox.x_end - zoom_icon_wh - zoom_icon_padding, zoombox.y_mid - zoom_icon_wh / 2);
@@ -551,7 +468,7 @@ void Bedside_Patient_Monitor_Demo()
 		EVE_Cmd_wr32(s_pHalContext, COLOR_A(0));
 		// transparent touch circle
 		EVE_Cmd_wr32(s_pHalContext, TAG(TAG_ZOOM_DOWN));
-		DRAW_CIRCLE(zoombox.x + zoom_icon_wh /2+ zoom_icon_padding, zoombox.y_mid, 40);
+		DRAW_CIRCLE(zoombox.x + zoom_icon_wh / 2 + zoom_icon_padding, zoombox.y_mid, 40);
 		EVE_Cmd_wr32(s_pHalContext, TAG(TAG_ZOOM_UP));
 		DRAW_CIRCLE(zoombox.x_end - zoom_icon_padding, zoombox.y_mid, 40);
 		EVE_Cmd_wr32(s_pHalContext, COLOR_A(255));
@@ -604,20 +521,12 @@ void Bedside_Patient_Monitor_Demo()
 		// NIBP
 		EVE_CoCmd_text(s_pHalContext, box_right4.x + 5, box_right4.y + 5, font2.handler, 0, "NIBP");
 		EVE_CoCmd_number(s_pHalContext, box_right4.x + 2, box_right4.y + 55, FONT_32, 0, val_sys);
-		EVE_CoCmd_text(s_pHalContext, box_right4.x_mid+4, box_right4.y_mid, font2.handler, OPT_CENTERX, "mmHg");
+		EVE_CoCmd_text(s_pHalContext, box_right4.x_mid + 4, box_right4.y_mid, font2.handler, OPT_CENTERX, "mmHg");
 		EVE_CoCmd_number(s_pHalContext, box_right4.x_mid + 50, box_right4.y + 55, FONT_32, 0, val_dias);
 		EVE_CoCmd_text(s_pHalContext, box_right4.x + 35, box_right4.y_end - 40, font2.handler, 0, "sys");
 		EVE_CoCmd_text(s_pHalContext, box_right4.x_end - 70, box_right4.y_end - 40, font2.handler, 0, "dias");
 
 		Display_End(s_pHalContext);
-
-#if ENABLE_SCREENSHOT_CAPTURE
-		screenshot_counter++;
-		if (screenshot_counter > 1000) {
-			take_ddr_screenshot();
-		}
-#endif
-
 	}
 	return 0;
 };
