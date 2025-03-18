@@ -65,7 +65,8 @@
             - Connect RP2040 and EVE to PC, use Zadig to install driver "WinUSB" for RP2040 USB port
             - Open USB mode on RP2040 by pressing "BOOTSEL" while powering the Pico board, copy the build/MM2040EV_BT81x_C.uf2 into RP2040 USB folder, the demo should start after that
 
-4. Demo functionalities
+## Demo functionalities
+   
         4.1 Date and time setting: Users can access date and time settings by swiping left to right or right to left.
 
         4.2 Zoom in / out: Tap the zoom button to zoom the graph from level 1 to 8 (pixels per sample).
@@ -75,7 +76,7 @@
             - Tap on the date to switch the date format (hh-mm-yyyy, hh-mmm-yyyy, hh-month-yyyy).
             - Tap on the time to switch the time format (hh:mm, hh:mm:ss, hh:mm:ss:ms).
 
-5. CONFIGURATION INSTRUCTIONS
+## CONFIGURATION INSTRUCTIONS
     The application uses the macros to configure the platforms: 
 	
     Host platform:
