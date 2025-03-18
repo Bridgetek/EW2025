@@ -1,90 +1,103 @@
-# INTRODUCTION
-    This project contains example code for the Bedside Patient Monitor demo application.
+# Bedside Patient Monitor Demo Application
 
 ![image](https://github.com/user-attachments/assets/5467df6e-da1c-4e97-aef2-3834d56d19f0)
 
-## FOLDER Structure   
+## Folder Structure
 
-    ├───Project                  
-    │   ├───MM2040EV_BT81x_C | MM2040EV platform with Rp2040 and BT817
-    │   ├───Msvc_BT81x       | Microsoft Visual Studio C++ 2022 IDE solution file for FT4222, MPSSE and Emulator platform
+    ├───Project
+    │   ├───MM2040EV_BT81x_C | MM2040EV platform with RP2040 and BT817
     ├───Hdr                  | Header files
     ├───Src                  | Source files
-    ├───Test                 | Eve specific Assets: bitmap data, flash image, font data etc. 
-    ├───Common               | Eve_Hal framework and helper functions
+    ├───Test                 | Eve specific Assets: bitmap data, flash image, font data etc.
+    └───Common               | Eve_Hal framework and helper functions
 
-## SUPPORTED PLATFORM
-    * Microsoft Visual C++ platform with FT4222, MPSSE and Emulator
-    * MM2040EV
-    
-    EVE chip: BT817
-    LCD size: WXGA(1280x800)
+## Supported Platforms
 
-## SETUP AND RUN
-    3.1 CONNECT HARDWARE
-        3.1.1 Microsoft Visual C++ platform with FT4222 and MPSSE
-            - Connect PC with EVE platform via FT4222 or MPSSE
-            - Connect power to EVE platform
+ * MM2040EV
 
-        3.1.2 Microsoft Visual C++ platform with Emulator
-            - This setup uses window PC only
+		EVE chip: BT817
+
+		LCD size: WXGA (1280x800)
+
+## Setup and Run
+
+### Connect Hardware
+
+ Connect PC with MM2040EV via USB cable
+
+### Download Assets
+
+ Copy all files in the `Test/Flash` folder to an SD card and plug it into MM2040EV.
+
+### Build and Run
+
+#### For MM2040EV:
+
+##### Prepare environment
+
+   * Install Microsoft Visual Studio Community C++ (to get nmake compiler)
+   * Install VScode
+   * Install VScode extensions: Cmake, Raspberry Pi Pico extension
         
-        3.1.3 MM2040EV
-            - Connect PC with MM2040EV via USB cable
+##### Build steps
 
-    3.2 DOWNLOAD ASSETS
+   * Open "Developer command prompt for VS"
+   * In the terminal window, cd to `Project/MM2040EV_BT81x_C`
+   * Start VScode by command: `code .`
+   * Under VScode, import `Project/MM2040EV_BT81x_C`:
+       + Open the Command Palette (Ctrl+Shift+P) and run Raspberry Pi Pico: Import Pico Project
+       + Location: Select path to `Project/MM2040EV_BT81x_C`
+       + Pico SDK: v1.5.1
+       + Cmake version: Select a version (such as 3.31.5)
+       + Show Advanced Options -> tick "Enable Cmake-Tools extension integration"
+   * Click "Import"
+   * After imported, it generates folder `.vscode` and the `.vscode/settings.json`
+   * Configure `settings.json`:
 
-        Copy all files in the Test/Flash folder to the SD card.
-        
-    3.3 BUILD AND RUN
-        3.3.1 Microsoft Visual C++ platform with FT4222, MPSSE and Emulator
-            - Open project in Project\MM2040EV_BT81x_C with Microsoft Visual C++
-            - Build (Ctrl + B)
-            - Run (F5)
-        
-        3.3.2 MM2040EV
-            - Install VScode.
-            - Install VScode extensions: Cmake, Raspberry Pi Pico extension.
-            - Open folder Project\MM2040EV_BT81x_C with VScode
-            - Import Project\MM2040EV_BT81x_C:
-                + Open Raspberry Pi Pico extension panel, click button "Import Project"
-                + Location: Select path to Project\MM2040EV_BT81x_C
-                + Pico SDK: v1.5.1
-            - Click "Import"
+			"cmake.configureArgs": [
 
-            - Configure settings.json:
-                "cmake.configureArgs": [
-                    "-DEVE_APPS_PLATFORM=RP2040",
-                    "-DEVE_APPS_GRAPHICS=BT817",
-                    "-DEVE_APPS_DISPLAY=WXGA"
-                ],
-                "raspberry-pi-pico.useCmakeTools": true,
-                "cmake.generator": "NMake Makefiles",
+			"-DEVE_APPS_PLATFORM=RP2040",
 
-            - Click "Compile" button on Raspberry Pi Pico extension's panel
-            - Connect RP2040 and EVE to PC, use Zadig to install driver "WinUSB" for RP2040 USB port
-            - Open USB mode on RP2040 by pressing "BOOTSEL" while powering the Pico board, copy the build/MM2040EV_BT81x_C.uf2 into RP2040 USB folder, the demo should start after that
+			"-DEVE_APPS_GRAPHICS=BT817",
 
-## Demo functionalities
-   
-        4.1 Date and time setting: Users can access date and time settings by swiping left to right or right to left.
+			"-DEVE_APPS_DISPLAY=WXGA"
 
-        4.2 Zoom in / out: Tap the zoom button to zoom the graph from level 1 to 8 (pixels per sample).
+			],
 
-        4.3 Date and time formatting:
+			"raspberry-pi-pico.useCmakeTools": true,
 
-            - Tap on the date to switch the date format (hh-mm-yyyy, hh-mmm-yyyy, hh-month-yyyy).
-            - Tap on the time to switch the time format (hh:mm, hh:mm:ss, hh:mm:ss:ms).
-
-## CONFIGURATION INSTRUCTIONS
-    The application uses the macros to configure the platforms: 
-	
-    Host platform:
-        - Window host: EVE_PLATFORM_FT4222, EVE_PLATFORM_MPSSE
-        - Emulator   : EVE_PLATFORM_BT8XXEMU
+			"cmake.generator": "NMake Makefiles",
     
-    EVE platform: EVE_GRAPHICS_BT817
-    
-    Please see common\eve_hal\EVE_Config.h. for more macros.
-            
-                                   【END】
+   * Open the Command Palette (Ctrl+Shift+P) and run Developer: Reload Window
+   * Open the Command Palette (Ctrl+Shift+P) and run "CMake: Build"        
+   * A new binary file "build/MM2040EV_BT81x_C.uf2" will be generated
+   * Connect RP2040 and EVE to PC, use Zadig to install driver "WinUSB" for the RP2040's USB port
+   * Open USB mode on RP2040 by pressing "BOOTSEL" while powering the Pico board
+   * Copy the build/MM2040EV_BT81x_C.uf2 into RP2040's USB folder
+   * The demo should start after that
+
+## Demo Functionalities
+
+### Date and time setting
+
+   Users can access date and time settings by swiping left to right or right to left.
+
+### Zoom in / out
+
+   Tap the zoom button to zoom the graph from level 1 to 8 (pixels per sample).
+
+### Date and time formatting
+
+   - Tap on the date to switch the date format (hh-mm-yyyy, hh-mmm-yyyy, hh-month-yyyy).
+   - Tap on the time to switch the time format (hh:mm, hh:mm:ss, hh:mm:ss:ms).
+
+## Configuration Instructions
+
+   The application uses the following macros to configure the platforms:
+
+    - EVE_APPS_PLATFORM=RP2040
+    - EVE_APPS_GRAPHICS=BT817
+    - EVE_APPS_DISPLAY=WXGA
+
+   Please see `common\eve_hal\EVE_Config.h` for more macros.
+
