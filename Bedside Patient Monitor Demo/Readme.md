@@ -2,6 +2,7 @@
     This project contains example code for the Bedside Patient Monitor demo application.
 
 
+![image](https://github.com/user-attachments/assets/5467df6e-da1c-4e97-aef2-3834d56d19f0)
 
 2. FOLDER Structure
     ├───Project                  
