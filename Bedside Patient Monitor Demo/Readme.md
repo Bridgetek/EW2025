@@ -71,10 +71,13 @@
    * Open the Command Palette (Ctrl+Shift+P) and run Developer: Reload Window
    * Open the Command Palette (Ctrl+Shift+P) and run "CMake: Build"        
    * A new binary file "build/MM2040EV_BT81x_C.uf2" will be generated
-   * Connect RP2040 and EVE to PC, use Zadig to install driver "WinUSB" for the RP2040's USB port
+   * Connect RP2040 and EVE to PC. If needed, use Zadig to install driver "WinUSB" for the RP2040's USB port
    * Open USB mode on RP2040 by pressing "BOOTSEL" while powering the Pico board
    * Copy the build/MM2040EV_BT81x_C.uf2 into RP2040's USB folder
    * The demo should start after that
+   * At initialization, the demo will prompt you to program the flash with the file from the SD card. Select 'Yes' to proceed. On the next restart, the user should not select 'Yes' again.
+     
+![image](https://github.com/user-attachments/assets/7f306b64-22b3-444e-89ce-7adbfcbc30e5)
 
 ## Demo Functionalities
 
