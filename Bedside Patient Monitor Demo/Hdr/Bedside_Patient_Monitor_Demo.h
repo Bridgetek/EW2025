@@ -1,29 +1,41 @@
-#ifndef APP_H_
-#define APP_H_
+/**
+ * @file Bedside_Patient_Monitor_Demo.h
+ * @brief Header file for the Bedside Patient Monitoring Demo Application
+ *
+ * This header file contains definitions, constants, and function prototypes
+ * for the Bedside Patient Monitoring Demo application. The application
+ * demonstrates the use of EVE graphics and touch capabilities in a 
+ * healthcare environment, providing a user interface for monitoring 
+ * patient data at the bedside.
+ *
+ * @author Bridgetek
+ * 
+ * @date 2025
+ * @license MIT License
+ *
+ * Copyright (c) [2019] [Bridgetek Pte Ltd (BRTChip)]
+ */
+
+#ifndef BEDSIDE_PATIENT_MONITOR_DEMO_H_
+#define BEDSIDE_PATIENT_MONITOR_DEMO_H_
 
 #include "EVE_Platform.h"
 
 // Path to UI assets Folder
 #if defined(MSVC_PLATFORM) || defined(BT8XXEMU_PLATFORM)
-#define TEST_DIR                            "..\\..\\..\\Test\\Flash\\"
+#define TEST_DIR "..\\..\\..\\Test\\Flash\\"
 #else
-#define TEST_DIR                            "/"
+#define TEST_DIR "/"
 #endif
 
-#define GET_CALIBRATION                     1
+#define GET_CALIBRATION 1
 
 #define WINDOW_W 1280
 #define WINDOW_H 800
 #define GRAPH_W 160
 #define GRAPH_H 1000
-#define GRAPH_SIZE (GRAPH_W * GRAPH_H)
 
-#define CHAR_BIT 8
-#define BITS_IN_TYPE(type) (sizeof(type) * CHAR_BIT)
-#define BIT_PER_CHAR (BITS_IN_TYPE(char))
-
-#define MSG printf
-#define SIGNALS_DATA_TYPE unsigned char 
+#define SIGNALS_DATA_TYPE unsigned char
 
 extern int32_t g_graph_zoom_lv;
 #define GRAPH_ZOOM_LV_MAX 8
@@ -42,6 +54,5 @@ extern int32_t g_graph_zoom_lv;
 #define FONT_34 4
 
 extern uint8_t btnStartState;
-extern uint32_t grid_bytes;
 
-#endif /* APP_H_ */
+#endif /* BEDSIDE_PATIENT_MONITOR_DEMO_H_ */

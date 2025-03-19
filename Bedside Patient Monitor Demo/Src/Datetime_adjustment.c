@@ -1,22 +1,35 @@
-﻿#include <stdio.h>
+﻿/**
+ * @file Datetime_adjustment.c
+ * @brief File containing functions for adjusting date and time
+ *
+ * This file contains functions to adjust date and time settings
+ * in the Bedside Patient Monitoring Demo application.
+ *
+ * @author Bridgetek
+ *
+ * @date 2025
+ * @license MIT License
+ *
+ * Copyright (c) [2019] [Bridgetek Pte Ltd (BRTChip)]
+ */
+
+ #include <stdio.h>
 #include <stdint.h>
 
 #include "Helpers.h"
 #include "common.h"
 #include "Bedside_Patient_Monitor_Demo.h"
 
-extern EVE_HalContext* s_pHalContext;
+extern EVE_HalContext *s_pHalContext;
 // Day (1-31)
 static uint32_t dd_list[] = {
     1, 2, 3, 4, 5, 6, 7, 8, 9, 10,
     11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
-    21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31
-};
+    21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31};
 
 // Month (1-12)
 static uint32_t mm_list[] = {
-    1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12
-};
+    1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
 
 // Year (1900-2100) -> Adjust as needed
 static uint32_t yy_list[] = {
@@ -39,99 +52,107 @@ static uint32_t yy_list[] = {
     2060, 2061, 2062, 2063, 2064, 2065, 2066, 2067, 2068, 2069,
     2070, 2071, 2072, 2073, 2074, 2075, 2076, 2077, 2078, 2079,
     2080, 2081, 2082, 2083, 2084, 2085, 2086, 2087, 2088, 2089,
-    2090, 2091, 2092, 2093, 2094, 2095, 2096, 2097, 2098, 2099, 2100
-};
+    2090, 2091, 2092, 2093, 2094, 2095, 2096, 2097, 2098, 2099, 2100};
 
 // Hour (0-23)
 static uint32_t hh_list[] = {
     0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11,
-    12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23
-};
+    12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23};
 
 // Minute (0-59)
 static uint32_t mt_list[] = {
     0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
     20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39,
-    40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59
-};
+    40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59};
 
 // Second (0-59)
 static uint32_t ss_list[] = {
     0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
     20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39,
-    40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59
-};
+    40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59};
 
-// Function to find the index of a given number in the array
-int find_index(uint32_t arr[], size_t size, uint32_t target) {
-    for (size_t i = 0; i < size; i++) {
-        if (arr[i] == target) {
-            return i;  // Return the index if found
-        }
-    }
-    return -1; // Return -1 if not found
-}
-
-// Function to return the number of valid left neighbors
-int find_left_neighbors(uint32_t arr[], size_t size, int index, int n) {
-    int count = 0;
-    for (int i = index - n; i < index; i++) {
-        if (i >= 0) {  // Ensure the index is valid
-            count++;
-        }
-    }
-    return count; // Return the number of valid left neighbors
-}
-
-// Function to return the number of valid right neighbors
-int find_right_neighbors(uint32_t arr[], size_t size, int index, int n) {
-    int count = 0;
-    for (int i = index + 1; i <= index + n; i++) {
-        if (i < size) {  // Ensure the index is within array bounds
-            count++;
-        }
-    }
-    return count; // Return the number of valid right neighbors
-}
-
-typedef struct {
-    uint32_t* array;
+typedef struct
+{
+    uint32_t *array;
     uint32_t array_count;
     int32_t index;
     int32_t y_offset;
     int32_t frame_x, frame_y, frame_w, frame_h;
     int32_t item_h;
     int32_t tag_val;
-    uint8_t* title;
+    uint8_t *title;
     int32_t velocity;
-    int32_t* font_list;
+    int32_t *font_list;
     int32_t num_active_item;
     int rebound;
-}scrolling_vertical_array_t;
+} scrolling_vertical_array_t;
 
-int32_t index_max_min(int index, int32_t arr_count, int32_t display_count) {
+/**
+ * @brief Finds the index of a given number in an array
+ *
+ * @param arr The array to search
+ * @param size The size of the array
+ * @param target The number to search for
+ * @return The index of the number if found, -1 if not found
+ */
+int find_index(uint32_t arr[], size_t size, uint32_t target)
+{
+    for (size_t i = 0; i < size; i++)
+    {
+        if (arr[i] == target)
+        {
+            return i; // Return the index if found
+        }
+    }
+    return -1; // Return -1 if not found
+}
+
+/**
+ * @brief Limit the index to the range [index_min, index_max]
+ *
+ * index_min = -display_count / 2
+ * index_max = arr_count - (display_count + 1) / 2
+ *
+ * @param index The index to limit
+ * @param arr_count The size of the array
+ * @param display_count The number of items to display
+ * @return The limited index
+ */
+int32_t index_max_min(int index, int32_t arr_count, int32_t display_count)
+{
     int32_t index_max = (arr_count - (display_count + 1) / 2);
     int32_t index_min = -display_count / 2;
     index = max(index, index_min);
     index = min(index, index_max);
     return index;
-
 }
-// return the selected index
-int32_t scrollable_list(scrolling_vertical_array_t *sc) {
-    Gesture_Touch_t* ges = utils_gestureGet(s_pHalContext);
-    
+
+/**
+ * @brief Handles the scrolling of a vertical list and returns the selected index.
+ *
+ * Handles touch gestures to update a scrollable vertical list's position and velocity, and draws list items within a frame.
+ *
+ * @param sc Pointer to a scrolling_vertical_array_t structure containing the list and its properties.
+ * @return The currently selected item in the list.
+ */
+
+int32_t scrollable_list(scrolling_vertical_array_t *sc)
+{
+    Gesture_Touch_t *ges = utils_gestureGet(s_pHalContext);
+
     int32_t dragY = 0;
     int32_t item_start = 0; // 0 to -item_num / 2
-    int32_t item_end = 0; // 0 to item_num / 2
+    int32_t item_end = 0;   // 0 to item_num / 2
 
     int32_t ret_index = 0;
 
-    if (ges->tagPressed== sc->tag_val) {
+    if (ges->tagPressed == sc->tag_val)
+    {
         dragY = ges->distanceY;
     }
 
-    else if (ges->tagReleased == sc->tag_val) {
+    else if (ges->tagReleased == sc->tag_val)
+    {
         sc->y_offset += ges->distanceY;
         sc->index -= sc->y_offset / sc->item_h;
         sc->y_offset = sc->y_offset % sc->item_h;
@@ -142,12 +163,14 @@ int32_t scrollable_list(scrolling_vertical_array_t *sc) {
         sc->index = min(sc->index, index_max);
     }
 
-    else if (ges->velocityY != 0 && ges->tagVelocity == sc->tag_val) {
+    else if (ges->velocityY != 0 && ges->tagVelocity == sc->tag_val)
+    {
         sc->velocity = ges->velocityY;
         stopVelocity();
     }
-    
-    if (sc->velocity != 0) {
+
+    if (sc->velocity != 0)
+    {
         const int32_t change_level = 35;
         const int32_t speed_level = 9;
         int32_t change = sc->velocity / change_level;
@@ -163,54 +186,30 @@ int32_t scrollable_list(scrolling_vertical_array_t *sc) {
 
         if (abs(sc->velocity) < 2)
             sc->velocity = 0;
-         else
+        else
             sc->velocity = sc->velocity * speed_level / 10;
 
         // move velocity to item boundary
-        if (sc->index == index_min) {
+        if (sc->index == index_min)
+        {
             sc->velocity = (sc->velocity < -sc->item_h) ? -sc->item_h : sc->velocity;
         }
-        else if (sc->index == index_max) {
+        else if (sc->index == index_max)
+        {
             sc->velocity = (sc->velocity > sc->item_h) ? sc->item_h : sc->velocity;
         }
     }
-    else{ // stopped scoling, adjustment to center
-#define ENABLE_INDEX_ADJUSTMENT_AFTER_SCROLLING 0
-#if ENABLE_INDEX_ADJUSTMENT_AFTER_SCROLLING
-        if (sc->y_offset > 0) {
-            if (sc->y_offset < sc->item_h / 2) {
-                sc->y_offset--;
-            }
-            else if (sc->y_offset > sc->item_h / 2) {
-                sc->y_offset++;
-                if (sc->y_offset == sc->item_h) {
-                    sc->y_offset = 0;
-                    sc->index--;
-                    sc->index = index_max_min(sc->index, sc->array_count, sc->num_active_item);
-                }
-            }
-        }
-        else if (sc->y_offset < 0) {
-            if (sc->y_offset > -sc->item_h / 2) {
-                sc->y_offset++;
-            }
-            else if (sc->y_offset < 0 && sc->y_offset < -sc->item_h / 2) {
-                sc->y_offset--;
-                if (sc->y_offset == -sc->item_h) {
-                    sc->y_offset = 0;
-                    sc->index++;
-                    sc->index = index_max_min(sc->index, sc->array_count, sc->num_active_item);
-                }
-            }
-        }
-#else
-        if (sc->y_offset > 0) {
+    else
+    { 
+        // stopped scoling, adjustment to center
+        if (sc->y_offset > 0)
+        {
             sc->y_offset--;
         }
-        else if (sc->y_offset < 0) {
+        else if (sc->y_offset < 0)
+        {
             sc->y_offset++;
         }
-#endif
     }
 
     int32_t drag_index = -dragY / sc->item_h;
@@ -223,12 +222,15 @@ int32_t scrollable_list(scrolling_vertical_array_t *sc) {
     EVE_Cmd_wr32(s_pHalContext, SCISSOR_XY(sc->frame_x, sc->frame_y));
     EVE_Cmd_wr32(s_pHalContext, SCISSOR_SIZE(sc->frame_w, sc->item_h * sc->num_active_item));
     int32_t text_x = sc->frame_x + sc->frame_w / 2;
-    for (int i = 0; i < sc->num_active_item+1; i++) {
+    for (int i = 0; i < sc->num_active_item + 1; i++)
+    {
         int arr_index = i + sc->index + drag_index;
         int text_y = drag_y + sc->y_offset + sc->frame_y + sc->item_h * i;
-        if (arr_index >= 0 && arr_index < sc->array_count) {
+        if (arr_index >= 0 && arr_index < sc->array_count)
+        {
             EVE_CoCmd_text(s_pHalContext, text_x, text_y, sc->font_list[i], OPT_FORMAT | OPT_CENTERX, "%d", sc->array[arr_index]);
-            if (i == sc->num_active_item / 2) {
+            if (i == sc->num_active_item / 2)
+            {
                 ret_index = arr_index;
             }
         }
@@ -247,7 +249,13 @@ int32_t scrollable_list(scrolling_vertical_array_t *sc) {
     return sc->array[ret_index];
 }
 
-void dateime_adjustment(EVE_HalContext* phost) {
+/**
+ * @brief      Show a datetime adjustment dialog box
+ *
+ * @param      phost  EVE_Hal Context
+ */
+void dateime_adjustment(EVE_HalContext *phost)
+{
     uint32_t dd = get_dd();
     uint32_t mm = get_mm();
     uint32_t yy = get_yyyy();
@@ -256,12 +264,12 @@ void dateime_adjustment(EVE_HalContext* phost) {
     uint32_t ss = get_ss();
     uint32_t ms = get_ms();
 
-    const uint8_t dd_text[]  = "Date"  ;
-    const uint8_t mm_text[]  = "Month" ;
-    const uint8_t yy_text[]  = "year"  ;
-    const uint8_t hh_text[]  = "Hour"  ;
-    const uint8_t mt_text[]  = "Minute";
-    const uint8_t ss_text[]  = "Second";
+    const uint8_t dd_text[] = "Date";
+    const uint8_t mm_text[] = "Month";
+    const uint8_t yy_text[] = "year";
+    const uint8_t hh_text[] = "Hour";
+    const uint8_t mt_text[] = "Minute";
+    const uint8_t ss_text[] = "Second";
 
     int dd_count = sizeof(dd_list) / sizeof(uint32_t);
     int mm_count = sizeof(mm_list) / sizeof(uint32_t);
@@ -283,7 +291,7 @@ void dateime_adjustment(EVE_HalContext* phost) {
 
     int h = 50, w = 100;
     int x = phost->Width / 2 - (200 + w * 5) / 2; // x center screen
-    int y = phost->Height / 2 - h * 5 / 2; // y center screen
+    int y = phost->Height / 2 - h * 5 / 2;        // y center screen
     app_box yy_frame = INIT_APP_BOX(x, y, 200, h);
     app_box mm_frame = INIT_APP_BOX(yy_frame.x_end + 1, y, w, h);
     app_box dd_frame = INIT_APP_BOX(mm_frame.x_end + 1, y, w, h);
@@ -291,7 +299,7 @@ void dateime_adjustment(EVE_HalContext* phost) {
     app_box mt_frame = INIT_APP_BOX(hh_frame.x_end + 1, y, w, h);
     app_box ss_frame = INIT_APP_BOX(mt_frame.x_end + 1, y, w, h);
 
-    int32_t fonts[] = { 30, 30, FONT_32, 30, 30, 30 };
+    int32_t fonts[] = {30, 30, FONT_32, 30, 30, 30};
 
     scrolling_vertical_array_t yy_scroller;
     yy_scroller.array = yy_list;
@@ -395,13 +403,16 @@ void dateime_adjustment(EVE_HalContext* phost) {
     ss_scroller.font_list = fonts;
     ss_scroller.index = index_max_min(ss_scroller.index - ss_scroller.num_active_item / 2, ss_scroller.array_count, ss_scroller.num_active_item);
 
-    while (1) {
-        Gesture_Touch_t* ges = utils_gestureRenew(s_pHalContext);
-        if (ges->tagReleased == tag_btn_ok) {
+    while (1)
+    {
+        Gesture_Touch_t *ges = utils_gestureRenew(s_pHalContext);
+        if (ges->tagReleased == tag_btn_ok)
+        {
             init_datetime(dd, mm, yy, hh, mt, ss, 0);
             return;
         }
-        else if (ges->tagReleased == tag_btn_cancel) {
+        else if (ges->tagReleased == tag_btn_cancel)
+        {
             return;
         }
 
@@ -424,13 +435,13 @@ void dateime_adjustment(EVE_HalContext* phost) {
         EVE_Cmd_wr32(s_pHalContext, TAG(tag_btn_cancel));
         EVE_CoCmd_button(s_pHalContext, box_datetime.x + 5, box_datetime.y + 5, 80, 30, 28, 0, "Back");
 
-        yy=scrollable_list(&yy_scroller);
-        mm=scrollable_list(&mm_scroller);
-        dd=scrollable_list(&dd_scroller);
-        
-        hh=scrollable_list(&hh_scroller);
-        mt=scrollable_list(&mt_scroller);
-        ss=scrollable_list(&ss_scroller);
+        yy = scrollable_list(&yy_scroller);
+        mm = scrollable_list(&mm_scroller);
+        dd = scrollable_list(&dd_scroller);
+
+        hh = scrollable_list(&hh_scroller);
+        mt = scrollable_list(&mt_scroller);
+        ss = scrollable_list(&ss_scroller);
 
         // reset scissor
         EVE_Cmd_wr32(s_pHalContext, SCISSOR_XY(0, 0));

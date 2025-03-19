@@ -1,4 +1,16 @@
-﻿#include "Helpers.h"
+﻿/**
+ * @file Data_Simulate.c
+ * @brief Functions to simulate reading data from time
+ *
+ * @author Bridgetek
+ *
+ * @date 2025
+ * @license MIT License
+ *
+ * Copyright (c) [2019] [Bridgetek Pte Ltd (BRTChip)]
+ */
+
+#include "Helpers.h"
 #include "signals_arrays.h"
 
 /**
@@ -12,7 +24,7 @@ int read_time_simulate(int sample_rate, int time_start_ms)
 	int now_ms = EVE_millis();
 	int duration_ms = now_ms - time_start_ms;
 	int num_samples = duration_ms * sample_rate / 1000;
-	//return 3;
+	// return 3;
 	return num_samples;
 }
 
@@ -22,12 +34,12 @@ int read_time_simulate(int sample_rate, int time_start_ms)
  * @param data_size Pointer to int to store size of data
  * @return Pixel x coordinate
  */
-int new_data_heartbeat(SIGNALS_DATA_TYPE** data, int *data_size)
+int new_data_heartbeat(SIGNALS_DATA_TYPE **data, int *data_size)
 {
 	int data_duration = 10 * 60; // unit: second
 	int dividor = 2;
 	int multipler = 3;
-	SIGNALS_DATA_TYPE* sample_buffer = ecg_data;
+	SIGNALS_DATA_TYPE *sample_buffer = ecg_data;
 	const int sample_total = sizeof(ecg_data) / sizeof(char);
 
 	static uint32_t time_start_ms = 0;
@@ -37,13 +49,15 @@ int new_data_heartbeat(SIGNALS_DATA_TYPE** data, int *data_size)
 	if (time_start_ms == 0)
 	{
 		time_start_ms = EVE_millis();
-		for (int i = 0; i < sample_total; i++) {
+		for (int i = 0; i < sample_total; i++)
+		{
 			// sample_buffer[i] = sample_buffer[i] * multipler / dividor;
 		}
 	}
 
 	int num_samples = read_time_simulate(sample_per_second, time_start_ms);
-	if (num_samples > 0) {
+	if (num_samples > 0)
+	{
 		time_start_ms = EVE_millis();
 		num_samples = min(num_samples, sample_total - sample_offset);
 	}
@@ -53,11 +67,10 @@ int new_data_heartbeat(SIGNALS_DATA_TYPE** data, int *data_size)
 
 	// get sample (x,y) coordinate
 	int pixel_y = num_samples;
-	//int pixel_x = sample_buffer[(sample_offset + pixel_y) % sample_total] * multipler / dividor;
+	// int pixel_x = sample_buffer[(sample_offset + pixel_y) % sample_total] * multipler / dividor;
 	sample_offset = (sample_offset + num_samples) % sample_total;
 	return 0;
 }
-
 
 /**
  * @brief Simulate Plethysmography data
@@ -65,12 +78,12 @@ int new_data_heartbeat(SIGNALS_DATA_TYPE** data, int *data_size)
  * @param data_size Pointer to int to store size of data
  * @return Pixel x coordinate
  */
-int new_data_pleth(SIGNALS_DATA_TYPE** data, int* data_size)
+int new_data_pleth(SIGNALS_DATA_TYPE **data, int *data_size)
 {
-	int data_duration = 10*60; // unit: second
+	int data_duration = 10 * 60; // unit: second
 	int dividor = 2;
 	int multipler = 1;
-	SIGNALS_DATA_TYPE* sample_buffer = ppg_data;
+	SIGNALS_DATA_TYPE *sample_buffer = ppg_data;
 	const int sample_total = sizeof(ppg_data) / sizeof(char);
 
 	static uint32_t time_start_ms = 0;
@@ -80,13 +93,15 @@ int new_data_pleth(SIGNALS_DATA_TYPE** data, int* data_size)
 	if (time_start_ms == 0)
 	{
 		time_start_ms = EVE_millis();
-		for (int i = 0; i < sample_total; i++) {
+		for (int i = 0; i < sample_total; i++)
+		{
 			// sample_buffer[i] = sample_buffer[i] * multipler / dividor;
 		}
 	}
 
 	int num_samples = read_time_simulate(sample_per_second, time_start_ms);
-	if (num_samples > 0) {
+	if (num_samples > 0)
+	{
 		time_start_ms = EVE_millis();
 		num_samples = min(num_samples, sample_total - sample_offset);
 	}
@@ -96,7 +111,7 @@ int new_data_pleth(SIGNALS_DATA_TYPE** data, int* data_size)
 
 	// get sample (x,y) coordinate
 	int pixel_y = num_samples;
-	//int pixel_x = sample_buffer[(sample_offset + pixel_y) % sample_total] * multipler / dividor;
+	// int pixel_x = sample_buffer[(sample_offset + pixel_y) % sample_total] * multipler / dividor;
 	sample_offset = (sample_offset + num_samples) % sample_total;
 	return 0;
 }
@@ -107,12 +122,12 @@ int new_data_pleth(SIGNALS_DATA_TYPE** data, int* data_size)
  * @param data_size Pointer to int to store size of data
  * @return Pixel x coordinate
  */
-int new_data_co2(SIGNALS_DATA_TYPE** data, int* data_size)
+int new_data_co2(SIGNALS_DATA_TYPE **data, int *data_size)
 {
 	int data_duration = 10 * 60; // unit: second
 	int dividor = 2;
 	int multipler = 1;
-	SIGNALS_DATA_TYPE* sample_buffer = co2_data;
+	SIGNALS_DATA_TYPE *sample_buffer = co2_data;
 	const int sample_total = sizeof(co2_data) / sizeof(char);
 
 	static uint32_t time_start_ms = 0;
@@ -125,7 +140,8 @@ int new_data_co2(SIGNALS_DATA_TYPE** data, int* data_size)
 	}
 
 	int num_samples = read_time_simulate(sample_per_second, time_start_ms);
-	if (num_samples > 0) {
+	if (num_samples > 0)
+	{
 		time_start_ms = EVE_millis();
 		num_samples = min(num_samples, sample_total - sample_offset);
 	}
@@ -135,7 +151,6 @@ int new_data_co2(SIGNALS_DATA_TYPE** data, int* data_size)
 
 	// get sample (x,y) coordinate
 	int pixel_y = num_samples;
-	//int pixel_x = sample_buffer[(sample_offset + pixel_y) % sample_total] * multipler / dividor;
 	sample_offset = (sample_offset + num_samples) % sample_total;
 	return 0;
 }

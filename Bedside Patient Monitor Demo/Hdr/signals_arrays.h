@@ -1,3 +1,17 @@
+/**
+ * @file signals_arrays.h
+ * @brief This file contains an array of ECG data values which were generated
+ * using matplotlib. The data is used to simulate a patient's ECG signal in the
+ * Bedside Patient Monitoring Demo application.
+ *
+ * @author Bridgetek
+ * 
+ * @date 2025
+ * @license MIT License
+ *
+ * Copyright (c) [2019] [Bridgetek Pte Ltd (BRTChip)]
+ */
+
 #ifndef SYNTHETIC_SIGNALS_ARRAYS_H
 #define SYNTHETIC_SIGNALS_ARRAYS_H
 #define SIGNALS_DATA_TYPE unsigned char
