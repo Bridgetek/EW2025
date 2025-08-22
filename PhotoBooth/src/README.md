@@ -58,7 +58,7 @@ For different chip and host used, the connections may be different. Here show a 
 
 Demo should start after that
 
-Reference: https://github.com/espressif/vscode-esp-idf-extension/blob/master/docs/tutorial/toc.md
+Reference: https://github.com/espressif/vscode-esp-idf-extension/blob/master/docs/tutorial/install.md
 
 ### Build and run with dev container
 Dev Containers help streamline the process of setting up your development environment by running your code inside a Docker container, ensuring that all developers use the same setup regardless of their local machine's operating system or configurations
@@ -101,4 +101,5 @@ Run the demo follow guideline:
  - [Run the demo](#run-the-demo)
 
 Reference: https://github.com/espressif/vscode-esp-idf-extension/blob/master/docs/tutorial/using-docker-container.md
+
 
